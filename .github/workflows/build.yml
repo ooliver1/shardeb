@@ -55,12 +55,8 @@ jobs:
       - name: Extract nginx
         run: |
           tar -xzvf nginx.tar.gz -o
-      - name: Change directory into nginx
-        run: |
-          cd nginx-${{ matrix.nginx }}
-      - name: Configure nginx
-        run: |
-          ./configure --add-dynamic-module=..
       - name: Build modules
         run: |
+          cd nginx-${{ matrix.nginx }}
+          ./configure --add-dynamic-module=..
           make modules
