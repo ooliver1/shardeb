@@ -8,6 +8,9 @@ typedef struct {
     ngx_str_t query_param;
 } shardeb_conf_t;
 
+ngx_str_t GUILD = ngx_string("guild");
+
+static ngx_int_t shardeb_init(ngx_conf_t *cf);
 static void *shardeb_create_loc_conf(ngx_conf_t *cf);
 static char *shardeb_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -70,28 +73,33 @@ static char *shardeb_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child) {
 }
 
 static ngx_int_t shardeb_handler(ngx_http_request_t *r) {
-    shardeb_conf_t *cf = ngx_http_get_module_loc_conf(r, shardeb_module);
-    ngx_str_t *name = &cf->query_param;
-    ngx_int_t *guild = ngx_http_get_variable_index(cf, name);
+    ngx_conf_t *cf = ngx_http_get_module_loc_conf(r, shardeb_module);
+    shardeb_conf_t *conf =
+        ngx_http_conf_get_module_loc_conf(cf, shardeb_module);
+    ngx_str_t *name = &conf->query_param;
+    ngx_int_t guild = ngx_http_get_variable_index(cf, name);
 
-    int shard = (*guild << 22) % cf->shards;
-    int cluster = (shard) / (cf->shards / cf->clusters);
+    int shard = (guild << 22) % conf->shards;
+    uintptr_t cluster = (shard) / (conf->shards / conf->clusters);
 
-    ngx_http_add_variable(cf, "guild", NGX_HTTP_VAR_CHANGEABLE);
+    ngx_http_variable_t *var =
+        ngx_http_add_variable(cf, &GUILD, NGX_HTTP_VAR_CHANGEABLE);
 
+    if (var == NULL) {
+        return NGX_ERROR;
+    }
+
+    var->data = cluster;
     return NGX_OK;
 }
 
 static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
     shardeb_conf_t *config = conf;
 
-    ngx_uint_t *values;
-
     ngx_int_t *check;
-    ngx_int_t *clusters;
-    ngx_int_t *shards;
+    ngx_int_t clusters;
+    ngx_int_t shards;
     ngx_str_t *value;
-    ngx_conf_post_t *post;
 
     check = (ngx_int_t *)(config + cmd->offset);
 
@@ -99,11 +107,12 @@ static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
         return "is duplicate";
     }
 
-    values = cf->args->elts;
-    *clusters = ngx_atoi(value[2].data, value[2].len);
-    *shards = ngx_atoi(value[2].data, value[2].len);
+    value = cf->args->elts;
 
-    if (*clusters == NGX_ERROR || *shards == NGX_ERROR) {
+    clusters = ngx_atoi(value[2].data, value[2].len);
+    shards = ngx_atoi(value[2].data, value[2].len);
+
+    if (clusters == NGX_ERROR || shards == NGX_ERROR) {
         return "invalid number";
     }
 
@@ -114,11 +123,11 @@ static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
     return NGX_CONF_OK;
 }
 
-static char *shardeb_init(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
+static ngx_int_t shardeb_init(ngx_conf_t *cf) {
     ngx_http_core_loc_conf_t *clcf;
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
     clcf->handler = shardeb_handler;
 
-    return NGX_CONF_OK;
+    return NGX_OK;
 }
