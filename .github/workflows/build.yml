@@ -54,10 +54,10 @@ jobs:
           curl https://nginx.org/download/nginx-${{ matrix.nginx}}.tar.gz -o nginx.tar.gz
       - name: Extract nginx
         run: |
-          tar -xzvf nginx.tar.gz
+          tar -xzvf nginx.tar.gz -o
       - name: Change directory into nginx
         run: |
-          cd nginx
+          cd nginx-${{ matrix.nginx }}
       - name: Configure nginx
         run: |
           ./configure --add-dynamic-module=..
