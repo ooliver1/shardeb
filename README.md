@@ -1,6 +1,6 @@
 # shardeb
 
-An nginx module to export the current shard (discord) of a web request to a variable.
+An nginx module to export the current discord cluster of a web request to a variable.
 
 ## Development
 
