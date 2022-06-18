@@ -109,7 +109,7 @@ static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
 
     value = cf->args->elts;
 
-    clusters = ngx_atoi(value[2].data, value[2].len);
+    clusters = ngx_atoi(value[1].data, value[1].len);
     shards = ngx_atoi(value[2].data, value[2].len);
 
     if (clusters == NGX_ERROR || shards == NGX_ERROR) {
