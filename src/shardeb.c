@@ -10,19 +10,24 @@ typedef struct {
 
 ngx_str_t GUILD = ngx_string("guild");
 
-static ngx_int_t shardeb_init(ngx_conf_t *cf);
 static void *shardeb_create_loc_conf(ngx_conf_t *cf);
 static char *shardeb_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static ngx_int_t guild_variable_handler(
+    ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data
+);
+static ngx_int_t shardeb_add_vars(ngx_conf_t *cf);
 
 static ngx_command_t shardeb_commands[] = {
     {ngx_string("shardeb"), NGX_HTTP_LOC_CONF | NGX_CONF_TAKE3, shardeb,
      NGX_HTTP_LOC_CONF_OFFSET, 0, NULL},
     ngx_null_command};
 
+static ngx_str_t guild_variable_name = ngx_string("guild");
+
 static ngx_http_module_t shardeb_ctx = {
-    NULL,         /* preconfiguration */
-    shardeb_init, /* postconfiguration */
+    shardeb_add_vars, /* preconfiguration */
+    NULL,             /* postconfiguration */
 
     NULL, /* create main configuration */
     NULL, /* init main configuration */
@@ -59,6 +64,20 @@ static void *shardeb_create_loc_conf(ngx_conf_t *cf) {
     return conf;
 }
 
+static ngx_int_t shardeb_add_vars(ngx_conf_t *cf) {
+    ngx_http_variable_t *var;
+
+    var = ngx_http_add_variable(cf, &guild_variable_name, 0);
+
+    if (var == NULL) {
+        return NGX_ERROR;
+    }
+
+    var->get_handler = guild_variable_handler;
+
+    return NGX_OK;
+}
+
 static char *shardeb_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child) {
     shardeb_conf_t *prev = parent;
     shardeb_conf_t *conf = child;
@@ -70,27 +89,6 @@ static char *shardeb_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child) {
     }
 
     return NGX_CONF_OK;
-}
-
-static ngx_int_t shardeb_handler(ngx_http_request_t *r) {
-    ngx_conf_t *cf = ngx_http_get_module_loc_conf(r, shardeb_module);
-    shardeb_conf_t *conf =
-        ngx_http_conf_get_module_loc_conf(cf, shardeb_module);
-    ngx_str_t *name = &conf->query_param;
-    ngx_int_t guild = ngx_http_get_variable_index(cf, name);
-
-    int shard = (guild << 22) % conf->shards;
-    uintptr_t cluster = (shard) / (conf->shards / conf->clusters);
-
-    ngx_http_variable_t *var =
-        ngx_http_add_variable(cf, &GUILD, NGX_HTTP_VAR_CHANGEABLE);
-
-    if (var == NULL) {
-        return NGX_ERROR;
-    }
-
-    var->data = cluster;
-    return NGX_OK;
 }
 
 static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
@@ -123,11 +121,33 @@ static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
     return NGX_CONF_OK;
 }
 
-static ngx_int_t shardeb_init(ngx_conf_t *cf) {
-    ngx_http_core_loc_conf_t *clcf;
+static ngx_int_t guild_variable_handler(
+    ngx_http_request_t *r, ngx_http_variable_value_t *var, uintptr_t data
+) {
+    ngx_conf_t *cf = ngx_http_get_module_loc_conf(r, shardeb_module);
+    shardeb_conf_t *conf =
+        ngx_http_conf_get_module_loc_conf(cf, shardeb_module);
+    ngx_str_t *name = &conf->query_param;
+    ngx_int_t guild = ngx_http_get_variable_index(cf, name);
 
-    clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
-    clcf->handler = shardeb_handler;
+    if (guild == NGX_ERROR) {
+        goto not_found;
+    }
+
+    int shard = (guild << 22) % conf->shards;
+    uintptr_t cluster = (shard) / (conf->shards / conf->clusters);
+
+    if (var == NULL) {
+        return NGX_ERROR;
+    }
+
+    var->data = (u_char *)cluster;
+
+    return NGX_OK;
+
+not_found:
+
+    var->not_found = 1;
 
     return NGX_OK;
 }
