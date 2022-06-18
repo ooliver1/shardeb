@@ -13,3 +13,15 @@ cd nginx-1.22.0
 ./configure
 mv objs/*.h src/core/
 ```
+
+## Building
+
+```bash
+# {version} is your nginx version from `nginx -v`
+wget https://nginx.org/download/nginx-{version}.tar.gz
+tar -xzvf nginx-{version}.tar.gz
+cd nginx-{version}
+./configure --add-dynamic-module=.. --with-compat
+make modules
+# the shared object is located in objs/shardeb.so
+```
