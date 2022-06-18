@@ -7,9 +7,9 @@ An nginx module to export the current discord cluster of a web request to a vari
 Getting the header files for intellisense:
 
 ```bash
-wget https://nginx.org/download/nginx-1.22.0.tar.gz
-tar -xzvf nginx-1.22.0.tar.gz
-cd nginx-1.22.0
+wget https://nginx.org/download/nginx-{version}.tar.gz
+tar -xzvf nginx-{version}.tar.gz
+cd nginx-{version}
 ./configure
 mv objs/*.h src/core/
 ```
@@ -23,5 +23,6 @@ tar -xzvf nginx-{version}.tar.gz
 cd nginx-{version}
 ./configure --add-dynamic-module=.. --with-compat
 make modules
-# the shared object is located in objs/shardeb.so
+sudo cp nginx-{version}/objs/shardeb.so /etc/nginx/modules/shardeb_{version}.so
+echo "load_module /etc/nginx/modules/shardeb_{version}.so;" | sudo tee -a /etc/nginx/nginx.conf
 ```
