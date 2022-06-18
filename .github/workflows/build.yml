@@ -39,7 +39,7 @@ jobs:
           cd nginx-${{ matrix.nginx }}
           ./configure --add-dynamic-module=..
           make modules
-          cp objs/shardeb_module.so ../shardeb-${{ github.event.release.tag_name }}-nginx-${{ matrix.nginx }}
+          cp objs/shardeb_module.so ../shardeb-${{ github.event.release.tag_name }}-nginx-${{ matrix.nginx }}.so
       - name: Edit release
         uses: svenstaro/upload-release-action@v2
         with:
