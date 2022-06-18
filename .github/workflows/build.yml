@@ -41,7 +41,7 @@ jobs:
           make modules
           cp objs/shardeb_module.so ../shardeb-${{ github.event.release.tag_name }}-(${{ matrix.nginx }})
       - name: Edit release
-        uses: sventaro/upload-release-action@v2
+        uses: svenstaro/upload-release-action@v2
         with:
           file: shardeb-*.so
           repo_token: ${{ secrets.GITHUB_TOKEN }}
