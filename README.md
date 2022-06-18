@@ -23,6 +23,6 @@ tar -xzvf nginx-{version}.tar.gz
 cd nginx-{version}
 ./configure --add-dynamic-module=.. --with-compat
 make modules
-sudo cp nginx-{version}/objs/shardeb.so /etc/nginx/modules/shardeb_{version}.so
+sudo ln -s nginx-{version}/objs/shardeb.so /etc/nginx/modules/shardeb_{version}.so
 echo "load_module /etc/nginx/modules/shardeb_{version}.so;" | sudo tee -a /etc/nginx/nginx.conf
 ```
