@@ -1,11 +1,8 @@
 name: Build module .so's
 
 on:
-  # release:
-  #   types: [created]
-  push:
-    branches:
-      - master # FIXME: remove once works
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -42,3 +39,12 @@ jobs:
           cd nginx-${{ matrix.nginx }}
           ./configure --add-dynamic-module=..
           make modules
+          cp objs/shardeb_module.so ../shardeb-${{ github.event.release.tag_name }}-(${{ matrix.nginx }})
+      - name: Edit release
+        uses: sventaro/upload-release-action@v2
+        with:
+          file: shardeb-*.so
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
