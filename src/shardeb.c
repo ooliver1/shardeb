@@ -8,7 +8,7 @@ typedef struct {
     ngx_str_t query_param;
 } shardeb_conf_t;
 
-ngx_str_t GUILD = ngx_string("guild");
+#define UNUSED(x) (void)(x)
 
 static void *shardeb_create_loc_conf(ngx_conf_t *cf);
 static char *shardeb_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
@@ -101,7 +101,7 @@ static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
 
     check = (ngx_int_t *)(config + cmd->offset);
 
-    if (*check != NGX_CONF_UNSET) {
+    if (check == NGX_CONF_UNSET_PTR) {
         return "is duplicate";
     }
 
@@ -114,9 +114,19 @@ static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
         return "invalid number";
     }
 
+    ngx_str_t guild_var_name = value[3];
+    char arg_constant[] = "arg_";
+
+    char *s = malloc(
+        snprintf(NULL, 0, "%s %s", arg_constant, guild_var_name.data) + 1
+    );
+
+    ngx_str_t guild_arg_name = ngx_string(s);
+
     config->clusters = clusters;
     config->shards = shards;
     config->query_param = value[3];
+    UNUSED(guild_arg_name);
 
     return NGX_CONF_OK;
 }
@@ -124,11 +134,14 @@ static char *shardeb(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
 static ngx_int_t guild_variable_handler(
     ngx_http_request_t *r, ngx_http_variable_value_t *var, uintptr_t data
 ) {
-    ngx_conf_t *cf = ngx_http_get_module_loc_conf(r, shardeb_module);
-    shardeb_conf_t *conf =
-        ngx_http_conf_get_module_loc_conf(cf, shardeb_module);
-    ngx_str_t *name = &conf->query_param;
-    ngx_int_t guild = ngx_http_get_variable_index(cf, name);
+    shardeb_conf_t *conf = ngx_http_get_module_loc_conf(r, shardeb_module);
+
+    u_char *query = conf->query_param.data;
+    ngx_uint_t hash = ngx_hash_strlow(query, query, sizeof(query));
+
+    ngx_http_variable_value_t *guild_var =
+        ngx_http_get_variable(r, &conf->query_param, hash);
+    ngx_int_t guild = ngx_atoi(guild_var->data, guild_var->len);
 
     if (guild == NGX_ERROR) {
         goto not_found;
